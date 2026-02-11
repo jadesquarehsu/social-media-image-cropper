@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Social Media Image Cropper</title>
+  <meta name="description" content="Upload, crop, and export images for multiple social media formats — IG Story, IG Post, and Facebook.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <path d="M21 15l-5-5L5 21"/>
+        </svg>
+        <h1>Image Cropper</h1>
+      </div>
+      <p class="subtitle">多規格社群媒體圖片裁切工具</p>
+    </header>
+
+    <main class="main-layout">
+      <!-- Left: Canvas Area -->
+      <section class="canvas-section">
+        <!-- Upload Zone (shown when no image loaded) -->
+        <div id="uploadZone" class="upload-zone">
+          <div class="upload-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <p class="upload-text">拖放圖片或點擊上傳</p>
+          <p class="upload-hint">支援 JPG、PNG、WebP，可多選</p>
+          <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        </div>
+
+        <!-- Canvas (shown when image loaded) -->
+        <div id="canvasWrapper" class="canvas-wrapper hidden">
+          <canvas id="cropCanvas"></canvas>
+          <div class="canvas-toolbar">
+            <button id="btnZoomOut" class="icon-btn" title="縮小">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </button>
+            <input type="range" id="zoomSlider" min="10" max="500" value="100" class="zoom-slider">
+            <button id="btnZoomIn" class="icon-btn" title="放大">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </button>
+            <span id="zoomLabel" class="zoom-label">100%</span>
+            <button id="btnResetView" class="icon-btn" title="重設視圖">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Image thumbnails -->
+        <div id="thumbnailStrip" class="thumbnail-strip hidden"></div>
+      </section>
+
+      <!-- Right: Controls Sidebar -->
+      <aside class="controls-sidebar">
+        <!-- Format Presets -->
+        <div class="control-group">
+          <h3 class="control-title">輸出格式</h3>
+          <div class="format-cards">
+            <label class="format-card active" data-format="ig-story">
+              <input type="checkbox" name="format" value="ig-story" checked>
+              <div class="format-preview story"></div>
+              <span class="format-name">IG Story</span>
+              <span class="format-size">1080 × 1920</span>
+            </label>
+            <label class="format-card active" data-format="ig-post">
+              <input type="checkbox" name="format" value="ig-post" checked>
+              <div class="format-preview post"></div>
+              <span class="format-name">IG Post</span>
+              <span class="format-size">1080 × 1350</span>
+            </label>
+            <label class="format-card active" data-format="fb-standard">
+              <input type="checkbox" name="format" value="fb-standard" checked>
+              <div class="format-preview square"></div>
+              <span class="format-name">FB Standard</span>
+              <span class="format-size">1200 × 1200</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Active crop format selector -->
+        <div class="control-group">
+          <h3 class="control-title">裁切預覽</h3>
+          <div class="crop-selector">
+            <button class="crop-btn active" data-crop="ig-story">IG Story<span>9:16</span></button>
+            <button class="crop-btn" data-crop="ig-post">IG Post<span>4:5</span></button>
+            <button class="crop-btn" data-crop="fb-standard">FB Standard<span>1:1</span></button>
+          </div>
+        </div>
+
+        <!-- Watermark -->
+        <div class="control-group">
+          <h3 class="control-title">浮水印</h3>
+          <label class="toggle-row">
+            <span>啟用浮水印</span>
+            <input type="checkbox" id="watermarkToggle" class="toggle-input">
+            <span class="toggle-switch"></span>
+          </label>
+          <div id="watermarkOptions" class="watermark-options hidden">
+            <input type="text" id="watermarkText" class="text-input" placeholder="浮水印文字" value="© My Brand">
+            <div class="watermark-position">
+              <label class="control-label">位置</label>
+              <select id="watermarkPosition" class="select-input">
+                <option value="bottom-right">右下角</option>
+                <option value="bottom-left">左下角</option>
+                <option value="top-right">右上角</option>
+                <option value="top-left">左上角</option>
+                <option value="center">居中</option>
+              </select>
+            </div>
+            <div class="watermark-opacity-row">
+              <label class="control-label">透明度</label>
+              <input type="range" id="watermarkOpacity" min="5" max="100" value="40" class="opacity-slider">
+              <span id="opacityLabel">40%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Output Format -->
+        <div class="control-group">
+          <h3 class="control-title">檔案格式</h3>
+          <div class="format-toggle">
+            <button class="fmt-btn active" data-fmt="jpeg">JPG</button>
+            <button class="fmt-btn" data-fmt="webp">WebP</button>
+          </div>
+          <div class="quality-row">
+            <label class="control-label">品質</label>
+            <input type="range" id="qualitySlider" min="10" max="100" value="92" class="quality-slider">
+            <span id="qualityLabel">92%</span>
+          </div>
+        </div>
+
+        <!-- Export -->
+        <div class="control-group export-group">
+          <button id="btnExport" class="btn-primary" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            匯出選取格式
+          </button>
+          <button id="btnExportAll" class="btn-secondary" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            全部匯出 (ZIP)
+          </button>
+          <button id="btnNewImage" class="btn-ghost hidden">
+            ＋ 上傳新圖片
+          </button>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
