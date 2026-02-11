@@ -16,6 +16,7 @@
     };
 
     const WEB_FORMATS = {
+        w800x880: { w: 800, h: 880, label: "Shopline 800×880", prefix: "SL-" },
         w2560x2560: { w: 2560, h: 2560, label: "2560×2560", prefix: "WEB-2560x2560-" },
         w2560x1920: { w: 2560, h: 1920, label: "2560×1920", prefix: "WEB-2560x1920-" },
         w2560x1440: { w: 2560, h: 1440, label: "2560×1440", prefix: "WEB-2560x1440-" },
@@ -31,6 +32,7 @@
     };
 
     const WEB_GUIDE_COLOR = "rgba(245, 158, 11, 0.8)";
+    const SHOPLINE_GUIDE_COLOR = "rgba(16, 185, 129, 0.8)";
 
     // ── DOM refs ──
     const uploadSection = document.getElementById("uploadSection");
@@ -45,6 +47,19 @@
     const btnChangeImage = document.getElementById("btnChangeImage");
     const btnDownloadAll = document.getElementById("btnDownloadAll");
     const downloadAllWrap = document.getElementById("downloadAllWrap");
+
+    // Watermark
+    const btnUploadWatermark = document.getElementById("btnUploadWatermark");
+    const btnRemoveWatermark = document.getElementById("btnRemoveWatermark");
+    const watermarkInput = document.getElementById("watermarkInput");
+    const watermarkName = document.getElementById("watermarkName");
+    const watermarkControls = document.getElementById("watermarkControls");
+    const watermarkPosition = document.getElementById("watermarkPosition");
+    const wmOpacity = document.getElementById("wmOpacity");
+    const wmOpacityValue = document.getElementById("wmOpacityValue");
+    const wmScale = document.getElementById("wmScale");
+    const wmScaleValue = document.getElementById("wmScaleValue");
+    const watermarkPreview = document.getElementById("watermarkPreview");
 
     // Social
     const igCanvas = document.getElementById("igCanvas");
@@ -70,6 +85,7 @@
     const webCanvas = document.getElementById("webCanvas");
     const webCanvasWrap = document.getElementById("webCanvasWrap");
     const webSizeLabel = document.getElementById("webSizeLabel");
+    const webBadge = document.getElementById("webBadge");
     const btnDownloadWeb = document.getElementById("btnDownloadWeb");
 
     // Warning elements
@@ -110,9 +126,9 @@
     };
 
     // ── State ──
-    let imageQueue = [];     // Array of { img, fileName, fileExt, zoom, panX, panY }
+    let imageQueue = [];
     let currentIndex = 0;
-    let img = null;          // Current image element (shortcut)
+    let img = null;
     let fileName = "";
     let fileExt = "";
     let fileMime = "";
@@ -121,7 +137,13 @@
     let dragging = false;
     let dragStartX = 0, dragStartY = 0;
     let dragStartPanX = 0, dragStartPanY = 0;
-    let currentMode = "social"; // "social" | "web"
+    let currentMode = "social";
+
+    // Watermark state
+    let watermarkImg = null;
+    let wmPos = "bottom-right";
+    let wmOpacityVal = 0.5;
+    let wmScaleVal = 0.20;
 
     // ── Helpers ──
     function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
@@ -131,7 +153,6 @@
         return map[ext.toLowerCase()] || "image/png";
     }
 
-    /** Get currently active formats as array of {w, h, label, color, prefix} */
     function activeFormats() {
         if (currentMode === "social") {
             return Object.keys(SOCIAL_MAP)
@@ -141,17 +162,16 @@
             const selected = document.querySelector('input[name="webFormat"]:checked');
             if (!selected) return [];
             const f = WEB_FORMATS[selected.value];
-            return f ? [{ ...f, color: WEB_GUIDE_COLOR }] : [];
+            const isShopline = selected.value === "w800x880";
+            return f ? [{ ...f, color: isShopline ? SHOPLINE_GUIDE_COLOR : WEB_GUIDE_COLOR }] : [];
         }
     }
 
-    /** Get selected web format key */
     function selectedWebFormatKey() {
         const selected = document.querySelector('input[name="webFormat"]:checked');
         return selected ? selected.value : null;
     }
 
-    /** Clamp pan so image covers all active crop areas */
     function clampPan() {
         if (!img) return;
         const formats = activeFormats();
@@ -212,7 +232,6 @@
         });
     }
 
-    // ── Save / Load per-image state ──
     function saveCurrentState() {
         if (imageQueue.length === 0) return;
         const entry = imageQueue[currentIndex];
@@ -248,7 +267,6 @@
         sourceCanvas.width = Math.round(img.width * scale);
         sourceCanvas.height = Math.round(img.height * scale);
 
-        // Social canvases
         igCanvas.width = SOCIAL_FORMATS.ig.w; igCanvas.height = SOCIAL_FORMATS.ig.h;
         igStoryCanvas.width = SOCIAL_FORMATS.igstory.w; igStoryCanvas.height = SOCIAL_FORMATS.igstory.h;
         fbCanvas.width = SOCIAL_FORMATS.fb.w; fbCanvas.height = SOCIAL_FORMATS.fb.h;
@@ -285,7 +303,6 @@
     function highlightThumbnail() {
         const thumbs = thumbnailStrip.querySelectorAll(".thumbnail");
         thumbs.forEach((t, i) => t.classList.toggle("active", i === currentIndex));
-        // Scroll active into view
         if (thumbs[currentIndex]) {
             thumbs[currentIndex].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
         }
@@ -305,7 +322,6 @@
         }
     }
 
-    // ── Canvas & visibility ──
     function updateWebCanvas() {
         const key = selectedWebFormatKey();
         if (!key) return;
@@ -314,9 +330,16 @@
         webCanvas.height = f.h;
         webCanvasWrap.style.aspectRatio = f.w + " / " + f.h;
         webSizeLabel.textContent = f.w + " × " + f.h;
+        // Update badge for Shopline vs generic WEB
+        if (key === "w800x880") {
+            webBadge.textContent = "🛍️ Shopline";
+            webBadge.className = "preview-card__badge preview-card__badge--shopline";
+        } else {
+            webBadge.textContent = "WEB";
+            webBadge.className = "preview-card__badge preview-card__badge--web";
+        }
     }
 
-    /** Get selected web output mime and extension */
     function webOutputInfo() {
         const sel = document.querySelector('input[name="webOutputType"]:checked');
         const val = sel ? sel.value : "jpg";
@@ -325,7 +348,6 @@
             : { mime: "image/jpeg", ext: ".jpg" };
     }
 
-    /** Get selected social output mime and extension */
     function socialOutputInfo() {
         const sel = document.querySelector('input[name="socialOutputType"]:checked');
         const val = sel ? sel.value : "jpg";
@@ -373,7 +395,6 @@
 
     function updateWarnings() {
         if (!img) return;
-        // Social warnings
         const WARN_MAP = {
             ig: { el: warnIG, sizeEl: warnIGSize },
             igstory: { el: warnIGStory, sizeEl: warnIGStorySize },
@@ -390,7 +411,6 @@
                 w.el.style.display = "none";
             }
         }
-        // Web warning
         const webKey = selectedWebFormatKey();
         if (webKey) {
             const wf = WEB_FORMATS[webKey];
@@ -441,7 +461,6 @@
         const dy = (ch - drawH) / 2 + panY * ss;
         sourceCtx.drawImage(img, dx, dy, drawW, drawH);
 
-        // Crop guides
         const formats = activeFormats();
         for (const f of formats) {
             drawCropGuide(sourceCtx, cw, ch, f, sourceScale);
@@ -481,6 +500,34 @@
         const dy = (outH - scaledH) / 2 + panY * panScale;
 
         ctx.drawImage(img, dx, dy, scaledW, scaledH);
+
+        // Draw watermark on preview
+        if (watermarkImg) {
+            drawWatermark(ctx, outW, outH);
+        }
+    }
+
+    /** Draw watermark on a canvas */
+    function drawWatermark(ctx, canvasW, canvasH) {
+        if (!watermarkImg) return;
+        const wmW = canvasW * wmScaleVal;
+        const wmH = wmW * (watermarkImg.height / watermarkImg.width);
+        const padding = canvasW * 0.03;
+
+        let x, y;
+        switch (wmPos) {
+            case "top-left": x = padding; y = padding; break;
+            case "top-right": x = canvasW - wmW - padding; y = padding; break;
+            case "bottom-left": x = padding; y = canvasH - wmH - padding; break;
+            case "center": x = (canvasW - wmW) / 2; y = (canvasH - wmH) / 2; break;
+            case "bottom-right":
+            default: x = canvasW - wmW - padding; y = canvasH - wmH - padding; break;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = wmOpacityVal;
+        ctx.drawImage(watermarkImg, x, y, wmW, wmH);
+        ctx.restore();
     }
 
     // ── Download (resolution-aware) ──
@@ -519,6 +566,11 @@
         const dy = (actualH - sh) / 2 + py * ps;
         tmpCtx.drawImage(i, dx, dy, sw, sh);
 
+        // Apply watermark to download
+        if (watermarkImg) {
+            drawWatermark(tmpCtx, actualW, actualH);
+        }
+
         return new Promise(resolve => {
             tmp.toBlob((blob) => {
                 if (!blob) { resolve(); return; }
@@ -542,7 +594,6 @@
 
         for (let i = 0; i < imageQueue.length; i++) {
             const entry = imageQueue[i];
-            const entryMime = mimeFromExt(entry.fileExt);
 
             if (currentMode === "social") {
                 const out = socialOutputInfo();
@@ -569,7 +620,6 @@
 
     // ── Event Listeners ──
 
-    // Upload
     dropzone.addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", (e) => {
         if (e.target.files.length) handleFiles(e.target.files);
@@ -586,7 +636,59 @@
         if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
     });
 
-    // Mode tabs
+    // Watermark upload
+    btnUploadWatermark.addEventListener("click", () => watermarkInput.click());
+    watermarkInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const image = new Image();
+            image.onload = () => {
+                watermarkImg = image;
+                watermarkName.textContent = file.name;
+                watermarkControls.style.display = "flex";
+                btnRemoveWatermark.style.display = "inline-flex";
+                watermarkPreview.style.display = "inline-block";
+                watermarkPreview.innerHTML = "";
+                const previewImg = document.createElement("img");
+                previewImg.src = ev.target.result;
+                watermarkPreview.appendChild(previewImg);
+                render();
+            };
+            image.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    btnRemoveWatermark.addEventListener("click", () => {
+        watermarkImg = null;
+        watermarkInput.value = "";
+        watermarkName.textContent = "尚未選擇";
+        watermarkControls.style.display = "none";
+        btnRemoveWatermark.style.display = "none";
+        watermarkPreview.style.display = "none";
+        watermarkPreview.innerHTML = "";
+        render();
+    });
+
+    watermarkPosition.addEventListener("change", (e) => {
+        wmPos = e.target.value;
+        render();
+    });
+
+    wmOpacity.addEventListener("input", (e) => {
+        wmOpacityVal = parseInt(e.target.value) / 100;
+        wmOpacityValue.textContent = e.target.value + "%";
+        render();
+    });
+
+    wmScale.addEventListener("input", (e) => {
+        wmScaleVal = parseInt(e.target.value) / 100;
+        wmScaleValue.textContent = e.target.value + "%";
+        render();
+    });
+
     tabSocial.addEventListener("click", () => {
         currentMode = "social";
         updateVisibility();
@@ -599,12 +701,10 @@
         render();
     });
 
-    // Social toggles
     [toggleIG, toggleIGStory, toggleFB].forEach(t => {
         t.addEventListener("change", () => { updateVisibility(); render(); });
     });
 
-    // Web format radios
     document.querySelectorAll('input[name="webFormat"]').forEach(radio => {
         radio.addEventListener("change", () => {
             updateWebCanvas();
@@ -612,7 +712,6 @@
         });
     });
 
-    // Zoom
     zoomSlider.addEventListener("input", (e) => {
         zoom = parseInt(e.target.value) / 100;
         zoomValue.textContent = e.target.value + "%";
@@ -629,7 +728,6 @@
         render();
     }, { passive: false });
 
-    // Pan – mouse
     sourceViewport.addEventListener("mousedown", (e) => {
         dragging = true;
         dragStartX = e.clientX; dragStartY = e.clientY;
@@ -645,7 +743,6 @@
     });
     window.addEventListener("mouseup", () => { dragging = false; });
 
-    // Pan – touch
     sourceViewport.addEventListener("touchstart", (e) => {
         if (e.touches.length !== 1) return;
         dragging = true;
@@ -663,7 +760,6 @@
     }, { passive: false });
     sourceViewport.addEventListener("touchend", () => { dragging = false; });
 
-    // Reset (current image only)
     btnReset.addEventListener("click", () => {
         zoom = 1; panX = 0; panY = 0;
         zoomSlider.value = 100;
@@ -671,7 +767,6 @@
         render();
     });
 
-    // Change image — go back to upload
     btnChangeImage.addEventListener("click", () => {
         saveCurrentState();
         editorSection.style.display = "none";
@@ -681,7 +776,6 @@
         img = null;
     });
 
-    // Batch navigation
     btnPrev.addEventListener("click", () => {
         if (currentIndex > 0) loadImageAtIndex(currentIndex - 1);
     });
@@ -689,7 +783,6 @@
         if (currentIndex < imageQueue.length - 1) loadImageAtIndex(currentIndex + 1);
     });
 
-    // Downloads – social (resolution-aware, current image)
     btnDownloadIG.addEventListener("click", () => {
         const out = socialOutputInfo();
         const f = SOCIAL_FORMATS.ig;
@@ -706,7 +799,6 @@
         downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext);
     });
 
-    // Download all formats for current image
     btnDownloadAll.addEventListener("click", () => {
         saveCurrentState();
         if (currentMode === "social") {
@@ -728,7 +820,6 @@
         }
     });
 
-    // Download – web (current image)
     btnDownloadWeb.addEventListener("click", () => {
         const key = selectedWebFormatKey();
         if (!key) return;
@@ -737,7 +828,6 @@
         downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext);
     });
 
-    // Batch download all images
     btnBatchDownload.addEventListener("click", () => {
         batchDownloadAll();
     });

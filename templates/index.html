@@ -98,8 +98,13 @@
             <!-- Web/Amazon Format Radio -->
             <div class="format-toggles format-toggles--web" id="webToggles" style="display:none;">
                 <span class="format-toggles__label">選擇格式：</span>
+                <label class="format-toggle format-toggle--shopline">
+                    <input type="radio" name="webFormat" value="w800x880" checked>
+                    <span class="format-toggle__badge">🛍️ Shopline</span>
+                    <span class="format-toggle__size">800×880</span>
+                </label>
                 <label class="format-toggle format-toggle--web">
-                    <input type="radio" name="webFormat" value="w2560x2560" checked>
+                    <input type="radio" name="webFormat" value="w2560x2560">
                     <span class="format-toggle__size">2560×2560</span>
                 </label>
                 <label class="format-toggle format-toggle--web">
@@ -177,6 +182,39 @@
                 </div>
             </div>
 
+            <!-- Watermark -->
+            <div class="watermark-section">
+                <div class="watermark-section__title">💧 浮水印</div>
+                <div class="watermark-upload">
+                    <button class="btn btn--secondary watermark-upload__btn" id="btnUploadWatermark">上傳浮水印圖片</button>
+                    <span class="watermark-upload__name" id="watermarkName">尚未選擇</span>
+                    <button class="btn btn--secondary watermark-upload__btn" id="btnRemoveWatermark"
+                        style="display:none;">✕ 移除</button>
+                    <input type="file" id="watermarkInput" accept="image/png,image/webp,image/jpeg" hidden>
+                </div>
+                <div class="watermark-controls" id="watermarkControls" style="display:none;">
+                    <div class="watermark-controls__group">
+                        <label>位置</label>
+                        <select id="watermarkPosition">
+                            <option value="bottom-right">右下角</option>
+                            <option value="bottom-left">左下角</option>
+                            <option value="top-right">右上角</option>
+                            <option value="top-left">左上角</option>
+                            <option value="center">置中</option>
+                        </select>
+                    </div>
+                    <div class="watermark-controls__group">
+                        <label>透明度 <span class="watermark-controls__value" id="wmOpacityValue">50%</span></label>
+                        <input type="range" id="wmOpacity" min="5" max="100" value="50" step="5">
+                    </div>
+                    <div class="watermark-controls__group">
+                        <label>大小 <span class="watermark-controls__value" id="wmScaleValue">20%</span></label>
+                        <input type="range" id="wmScale" min="5" max="50" value="20" step="1">
+                    </div>
+                </div>
+                <div class="watermark-preview" id="watermarkPreview" style="display:none;"></div>
+            </div>
+
             <!-- Source Image for interaction -->
             <div class="source-container" id="sourceContainer">
                 <p class="source-container__hint">↕↔ 拖曳圖片調整焦點位置</p>
@@ -229,10 +267,10 @@
             <div class="previews" id="webPreviews" style="display:none;">
                 <div class="preview-card preview-card--wide" id="cardWeb">
                     <div class="preview-card__header">
-                        <span class="preview-card__badge preview-card__badge--web">WEB</span>
-                        <span class="preview-card__size" id="webSizeLabel">2560 × 2560</span>
+                        <span class="preview-card__badge preview-card__badge--web" id="webBadge">WEB</span>
+                        <span class="preview-card__size" id="webSizeLabel">800 × 880</span>
                     </div>
-                    <div class="preview-card__canvas-wrap" id="webCanvasWrap" style="aspect-ratio: 1/1;">
+                    <div class="preview-card__canvas-wrap" id="webCanvasWrap" style="aspect-ratio: 800/880;">
                         <canvas id="webCanvas"></canvas>
                     </div>
                     <div class="resolution-warning" id="warnWeb" style="display:none;">⚠️ 解析度不足，實際輸出 <span
@@ -267,14 +305,12 @@
             const input = document.getElementById("passwordInput");
             const error = document.getElementById("passwordError");
 
-            // Check if password is required
             fetch("/api/verify", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ password: "" })
             }).then(r => r.json()).then(d => {
                 if (d.ok) {
-                    // No password set — skip gate
                     overlay.style.display = "none";
                     mainApp.style.display = "block";
                 }
