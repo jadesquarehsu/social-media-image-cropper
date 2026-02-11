@@ -211,26 +211,31 @@
         const drawH = img.height * state.zoom;
         ctx.drawImage(img, state.panX, state.panY, drawW, drawH);
 
-        // Dim area outside the crop rectangle (the whole canvas is the crop rect)
-        // Draw guide lines (rule of thirds)
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-        ctx.lineWidth = 0.5;
+        // Draw guide lines (rule of thirds) with shadow for contrast
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        ctx.shadowBlur = 2;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+        ctx.lineWidth = 1;
         for (let i = 1; i <= 2; i++) {
             // Vertical
-            const x = (cw / 3) * i;
+            const x = Math.round((cw / 3) * i) + 0.5;
             ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, ch); ctx.stroke();
             // Horizontal
-            const y = (ch / 3) * i;
+            const y = Math.round((ch / 3) * i) + 0.5;
             ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cw, y); ctx.stroke();
         }
 
         // Center crosshair
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-        ctx.lineWidth = 0.5;
-        ctx.setLineDash([6, 4]);
-        ctx.beginPath(); ctx.moveTo(cw / 2, 0); ctx.lineTo(cw / 2, ch); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, ch / 2); ctx.lineTo(cw, ch / 2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([8, 5]);
+        const midX = Math.round(cw / 2) + 0.5;
+        const midY = Math.round(ch / 2) + 0.5;
+        ctx.beginPath(); ctx.moveTo(midX, 0); ctx.lineTo(midX, ch); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(cw, midY); ctx.stroke();
         ctx.setLineDash([]);
+        ctx.restore();
 
         // Border
         ctx.strokeStyle = 'rgba(138, 120, 255, 0.4)';
