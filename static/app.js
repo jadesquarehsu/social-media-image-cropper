@@ -189,7 +189,7 @@
         if (currentMode === "social") {
             return Object.keys(SOCIAL_MAP)
                 .filter(k => SOCIAL_MAP[k].toggle.checked)
-                .map(k => SOCIAL_FORMATS[k]);
+                .map(k => k === "custom" ? CUSTOM_FORMAT : SOCIAL_FORMATS[k]);
         } else {
             const selected = document.querySelector('input[name="webFormat"]:checked');
             if (!selected) return [];
