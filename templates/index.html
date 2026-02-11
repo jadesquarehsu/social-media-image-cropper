@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Image Cropper</title>
+    <meta name="description" content="快速裁切圖片為社群媒體與網頁最佳尺寸">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+</head>
+
+<body>
+    <!-- Password Gate -->
+    <div class="password-overlay" id="passwordOverlay">
+        <div class="password-box">
+            <div class="password-box__icon">🔒</div>
+            <h2 class="password-box__title">請輸入密碼</h2>
+            <form id="passwordForm" autocomplete="off">
+                <input type="password" class="password-box__input" id="passwordInput" placeholder="密碼" autofocus>
+                <p class="password-box__error" id="passwordError" style="display:none;">密碼錯誤，請重試</p>
+                <button type="submit" class="btn btn--accent password-box__btn">進入</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="app" id="mainApp" style="display:none;">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="header__title">📐 Social Image Cropper</h1>
+            <p class="header__subtitle">上傳圖片，快速輸出社群媒體與網頁最佳尺寸</p>
+        </header>
+
+        <!-- Upload Area -->
+        <section class="upload-section" id="uploadSection">
+            <div class="upload-dropzone" id="dropzone">
+                <div class="upload-dropzone__icon">🖼️</div>
+                <p class="upload-dropzone__text">拖曳圖片到這裡，或點擊選擇檔案</p>
+                <p class="upload-dropzone__hint">支援 JPG、PNG、WebP（可多選）</p>
+                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple hidden>
+            </div>
+        </section>
+
+        <!-- Editor (hidden until image loaded) -->
+        <section class="editor-section" id="editorSection" style="display:none;">
+
+            <!-- Mode Tabs -->
+            <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="social" id="tabSocial">📱 社群媒體</button>
+                <button class="mode-tab" data-mode="web" id="tabWeb">🌐 網頁 & Amazon</button>
+            </div>
+
+            <!-- Image Navigation (batch) -->
+            <div class="image-nav" id="imageNav" style="display:none;">
+                <button class="btn btn--secondary image-nav__btn" id="btnPrev">◀</button>
+                <span class="image-nav__counter" id="imageCounter">1 / 1</span>
+                <button class="btn btn--secondary image-nav__btn" id="btnNext">▶</button>
+            </div>
+
+            <!-- Thumbnail Strip (batch) -->
+            <div class="thumbnail-strip" id="thumbnailStrip" style="display:none;"></div>
+
+            <!-- Social Format Toggles -->
+            <div class="format-toggles" id="socialToggles">
+                <span class="format-toggles__label">啟用格式：</span>
+                <label class="format-toggle format-toggle--ig">
+                    <input type="checkbox" id="toggleIG" checked data-format="ig">
+                    <span class="format-toggle__badge">IG 4:5</span>
+                    <span class="format-toggle__size">1080×1350</span>
+                </label>
+                <label class="format-toggle format-toggle--igstory">
+                    <input type="checkbox" id="toggleIGStory" checked data-format="igstory">
+                    <span class="format-toggle__badge">IG Story</span>
+                    <span class="format-toggle__size">1080×1920</span>
+                </label>
+                <label class="format-toggle format-toggle--fb">
+                    <input type="checkbox" id="toggleFB" checked data-format="fb">
+                    <span class="format-toggle__badge">FB 1:1</span>
+                    <span class="format-toggle__size">1200×1200</span>
+                </label>
+            </div>
+
+            <!-- Social Output Format -->
+            <div class="format-toggles" id="socialOutputFormat">
+                <span class="format-toggles__label">輸出格式：</span>
+                <label class="format-toggle format-toggle--ig">
+                    <input type="radio" name="socialOutputType" value="jpg" checked>
+                    <span class="format-toggle__badge">JPG</span>
+                </label>
+                <label class="format-toggle format-toggle--ig">
+                    <input type="radio" name="socialOutputType" value="webp">
+                    <span class="format-toggle__badge">WebP</span>
+                </label>
+            </div>
+
+            <!-- Web/Amazon Format Radio -->
+            <div class="format-toggles format-toggles--web" id="webToggles" style="display:none;">
+                <span class="format-toggles__label">選擇格式：</span>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webFormat" value="w2560x2560" checked>
+                    <span class="format-toggle__size">2560×2560</span>
+                </label>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webFormat" value="w2560x1920">
+                    <span class="format-toggle__size">2560×1920</span>
+                </label>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webFormat" value="w2560x1440">
+                    <span class="format-toggle__size">2560×1440</span>
+                </label>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webFormat" value="w1440x2560">
+                    <span class="format-toggle__size">1440×2560</span>
+                </label>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webFormat" value="w970x600">
+                    <span class="format-toggle__size">970×600</span>
+                </label>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webFormat" value="w970x300">
+                    <span class="format-toggle__size">970×300</span>
+                </label>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webFormat" value="w600x180">
+                    <span class="format-toggle__size">600×180</span>
+                </label>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webFormat" value="w350x175">
+                    <span class="format-toggle__size">350×175</span>
+                </label>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webFormat" value="w300x400">
+                    <span class="format-toggle__size">300×400</span>
+                </label>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webFormat" value="w300x300">
+                    <span class="format-toggle__size">300×300</span>
+                </label>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webFormat" value="w200x200">
+                    <span class="format-toggle__size">200×200</span>
+                </label>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webFormat" value="w150x300">
+                    <span class="format-toggle__size">150×300</span>
+                </label>
+            </div>
+
+            <!-- Web Output Format -->
+            <div class="format-toggles format-toggles--web" id="webOutputFormat" style="display:none;">
+                <span class="format-toggles__label">輸出格式：</span>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webOutputType" value="jpg" checked>
+                    <span class="format-toggle__badge">JPG</span>
+                </label>
+                <label class="format-toggle format-toggle--web">
+                    <input type="radio" name="webOutputType" value="webp">
+                    <span class="format-toggle__badge">WebP</span>
+                </label>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <div class="controls__group">
+                    <label class="controls__label" for="zoomSlider">
+                        🔍 縮放
+                        <span class="controls__value" id="zoomValue">100%</span>
+                    </label>
+                    <input type="range" id="zoomSlider" class="controls__slider" min="100" max="300" value="100"
+                        step="1">
+                </div>
+                <div class="controls__actions">
+                    <button class="btn btn--secondary" id="btnReset">↺ 重置</button>
+                    <button class="btn btn--secondary" id="btnChangeImage">🔄 換圖</button>
+                </div>
+            </div>
+
+            <!-- Source Image for interaction -->
+            <div class="source-container" id="sourceContainer">
+                <p class="source-container__hint">↕↔ 拖曳圖片調整焦點位置</p>
+                <div class="source-viewport" id="sourceViewport">
+                    <canvas id="sourceCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Social Preview Cards -->
+            <div class="previews" id="socialPreviews">
+                <div class="preview-card" id="cardIG">
+                    <div class="preview-card__header">
+                        <span class="preview-card__badge preview-card__badge--ig">IG 4:5</span>
+                        <span class="preview-card__size">1080 × 1350</span>
+                    </div>
+                    <div class="preview-card__canvas-wrap preview-card__canvas-wrap--ig">
+                        <canvas id="igCanvas"></canvas>
+                    </div>
+                    <div class="resolution-warning" id="warnIG" style="display:none;">⚠️ 解析度不足，實際輸出 <span
+                            id="warnIGSize"></span></div>
+                    <button class="btn btn--primary btn--ig" id="btnDownloadIG">⬇ 下載 IG 圖片</button>
+                </div>
+                <div class="preview-card" id="cardIGStory">
+                    <div class="preview-card__header">
+                        <span class="preview-card__badge preview-card__badge--igstory">IG Story</span>
+                        <span class="preview-card__size">1080 × 1920</span>
+                    </div>
+                    <div class="preview-card__canvas-wrap preview-card__canvas-wrap--igstory">
+                        <canvas id="igStoryCanvas"></canvas>
+                    </div>
+                    <div class="resolution-warning" id="warnIGStory" style="display:none;">⚠️ 解析度不足，實際輸出 <span
+                            id="warnIGStorySize"></span></div>
+                    <button class="btn btn--primary btn--igstory" id="btnDownloadIGStory">⬇ 下載 IG Story</button>
+                </div>
+                <div class="preview-card" id="cardFB">
+                    <div class="preview-card__header">
+                        <span class="preview-card__badge preview-card__badge--fb">FB 1:1</span>
+                        <span class="preview-card__size">1200 × 1200</span>
+                    </div>
+                    <div class="preview-card__canvas-wrap preview-card__canvas-wrap--fb">
+                        <canvas id="fbCanvas"></canvas>
+                    </div>
+                    <div class="resolution-warning" id="warnFB" style="display:none;">⚠️ 解析度不足，實際輸出 <span
+                            id="warnFBSize"></span></div>
+                    <button class="btn btn--primary btn--fb" id="btnDownloadFB">⬇ 下載 FB 圖片</button>
+                </div>
+            </div>
+
+            <!-- Web/Amazon Preview -->
+            <div class="previews" id="webPreviews" style="display:none;">
+                <div class="preview-card preview-card--wide" id="cardWeb">
+                    <div class="preview-card__header">
+                        <span class="preview-card__badge preview-card__badge--web">WEB</span>
+                        <span class="preview-card__size" id="webSizeLabel">2560 × 2560</span>
+                    </div>
+                    <div class="preview-card__canvas-wrap" id="webCanvasWrap" style="aspect-ratio: 1/1;">
+                        <canvas id="webCanvas"></canvas>
+                    </div>
+                    <div class="resolution-warning" id="warnWeb" style="display:none;">⚠️ 解析度不足，實際輸出 <span
+                            id="warnWebSize"></span></div>
+                    <button class="btn btn--primary btn--web" id="btnDownloadWeb">⬇ 下載圖片</button>
+                </div>
+            </div>
+
+            <!-- Download Current Image -->
+            <div class="download-all" id="downloadAllWrap">
+                <button class="btn btn--accent" id="btnDownloadAll">⬇ 下載此張全部格式</button>
+            </div>
+
+            <!-- Batch Download All Images -->
+            <div class="download-all" id="batchDownloadWrap" style="display:none;">
+                <button class="btn btn--accent btn--batch" id="btnBatchDownload">📦 批次下載全部圖片</button>
+                <p class="batch-hint" id="batchHint"></p>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>Social Image Cropper &mdash; 前端處理，圖片不會上傳至伺服器</p>
+        </footer>
+    </div>
+
+    <script>
+        // Password gate
+        (function () {
+            const overlay = document.getElementById("passwordOverlay");
+            const mainApp = document.getElementById("mainApp");
+            const form = document.getElementById("passwordForm");
+            const input = document.getElementById("passwordInput");
+            const error = document.getElementById("passwordError");
+
+            // Check if password is required
+            fetch("/api/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password: "" })
+            }).then(r => r.json()).then(d => {
+                if (d.ok) {
+                    // No password set — skip gate
+                    overlay.style.display = "none";
+                    mainApp.style.display = "block";
+                }
+            }).catch(() => { });
+
+            form.addEventListener("submit", function (e) {
+                e.preventDefault();
+                error.style.display = "none";
+                fetch("/api/verify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password: input.value })
+                }).then(r => r.json()).then(d => {
+                    if (d.ok) {
+                        overlay.style.display = "none";
+                        mainApp.style.display = "block";
+                    } else {
+                        error.style.display = "block";
+                        input.value = "";
+                        input.focus();
+                    }
+                }).catch(() => {
+                    error.style.display = "block";
+                });
+            });
+        })();
+    </script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+
+</html>
