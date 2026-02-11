@@ -1,0 +1,13 @@
+{
+  "name": "social-media-image-cropper",
+  "version": "1.0.0",
+  "description": "Social media image cropping tool with multi-format export",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

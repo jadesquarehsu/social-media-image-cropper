@@ -1,6 +1,50 @@
 /* ============================================================
    Social Media Image Cropper – app.js
    ============================================================ */
+
+// ── Auth Gate ─────────────────────────────────────────────────
+(async () => {
+    const authOverlay = document.getElementById('authOverlay');
+    const authForm = document.getElementById('authForm');
+    const authPassword = document.getElementById('authPassword');
+    const authError = document.getElementById('authError');
+    const appContainer = document.querySelector('.app-container');
+
+    try {
+        const res = await fetch('/api/auth-required');
+        const data = await res.json();
+
+        if (data.required) {
+            // Show auth overlay, hide app
+            authOverlay.classList.remove('hidden');
+            appContainer.style.display = 'none';
+
+            authForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                authError.classList.add('hidden');
+
+                const verifyRes = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: authPassword.value }),
+                });
+                const result = await verifyRes.json();
+
+                if (result.ok) {
+                    authOverlay.classList.add('hidden');
+                    appContainer.style.display = '';
+                } else {
+                    authError.classList.remove('hidden');
+                    authPassword.value = '';
+                    authPassword.focus();
+                }
+            });
+        }
+    } catch {
+        // No server (local file:// usage) — skip auth
+    }
+})();
+
 (() => {
     'use strict';
 
