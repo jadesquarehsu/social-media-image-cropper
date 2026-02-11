@@ -80,6 +80,28 @@
                     <span class="format-toggle__badge">FB 1:1</span>
                     <span class="format-toggle__size">1200×1200</span>
                 </label>
+                <label class="format-toggle format-toggle--fb">
+                    <input type="checkbox" id="toggleFB43" checked data-format="fb43">
+                    <span class="format-toggle__badge">FB 4:3</span>
+                    <span class="format-toggle__size">1200×900</span>
+                </label>
+                <label class="format-toggle format-toggle--custom" id="customToggleLabel">
+                    <input type="checkbox" id="toggleCustom" data-format="custom">
+                    <span class="format-toggle__badge">✏️ 自訂</span>
+                    <span class="format-toggle__size" id="customToggleSize">未設定</span>
+                </label>
+            </div>
+
+            <!-- Custom Size Input -->
+            <div class="custom-size-section" id="customSizeSection" style="display:none;">
+                <span class="custom-size-section__label">自訂尺寸：</span>
+                <input type="number" id="customW" class="custom-size-input" placeholder="寬" min="50" max="10000"
+                    value="1000">
+                <span class="custom-size-x">×</span>
+                <input type="number" id="customH" class="custom-size-input" placeholder="高" min="50" max="10000"
+                    value="1000">
+                <span class="custom-size-unit">px</span>
+                <button class="btn btn--secondary custom-size-apply" id="btnApplyCustom">套用</button>
             </div>
 
             <!-- Social Output Format -->
@@ -259,7 +281,31 @@
                     </div>
                     <div class="resolution-warning" id="warnFB" style="display:none;">⚠️ 解析度不足，實際輸出 <span
                             id="warnFBSize"></span></div>
-                    <button class="btn btn--primary btn--fb" id="btnDownloadFB">⬇ 下載 FB 圖片</button>
+                    <button class="btn btn--primary btn--fb" id="btnDownloadFB">⬇ 下載 FB 1:1</button>
+                </div>
+                <div class="preview-card" id="cardFB43">
+                    <div class="preview-card__header">
+                        <span class="preview-card__badge preview-card__badge--fb">FB 4:3</span>
+                        <span class="preview-card__size">1200 × 900</span>
+                    </div>
+                    <div class="preview-card__canvas-wrap" style="aspect-ratio: 4/3;">
+                        <canvas id="fb43Canvas"></canvas>
+                    </div>
+                    <div class="resolution-warning" id="warnFB43" style="display:none;">⚠️ 解析度不足，實際輸出 <span
+                            id="warnFB43Size"></span></div>
+                    <button class="btn btn--primary btn--fb" id="btnDownloadFB43">⬇ 下載 FB 4:3</button>
+                </div>
+                <div class="preview-card" id="cardCustom" style="display:none;">
+                    <div class="preview-card__header">
+                        <span class="preview-card__badge preview-card__badge--custom" id="customBadge">✏️ 自訂</span>
+                        <span class="preview-card__size" id="customSizeLabel">1000 × 1000</span>
+                    </div>
+                    <div class="preview-card__canvas-wrap" id="customCanvasWrap" style="aspect-ratio: 1/1;">
+                        <canvas id="customCanvas"></canvas>
+                    </div>
+                    <div class="resolution-warning" id="warnCustom" style="display:none;">⚠️ 解析度不足，實際輸出 <span
+                            id="warnCustomSize"></span></div>
+                    <button class="btn btn--primary btn--accent" id="btnDownloadCustom">⬇ 下載自訂尺寸</button>
                 </div>
             </div>
 

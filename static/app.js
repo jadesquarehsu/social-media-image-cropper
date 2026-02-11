@@ -13,7 +13,11 @@
         ig: { w: 1080, h: 1350, label: "IG 4:5", color: "rgba(225, 48, 108, 0.8)", prefix: "IG-" },
         igstory: { w: 1080, h: 1920, label: "IG Story", color: "rgba(193, 53, 132, 0.8)", prefix: "IGStory-" },
         fb: { w: 1200, h: 1200, label: "FB 1:1", color: "rgba(24, 119, 242, 0.8)", prefix: "FB-" },
+        fb43: { w: 1200, h: 900, label: "FB 4:3", color: "rgba(24, 119, 242, 0.8)", prefix: "FB43-" },
     };
+
+    // Custom format (user-defined)
+    let CUSTOM_FORMAT = { w: 1000, h: 1000, label: "自訂", color: "rgba(168, 85, 247, 0.8)", prefix: "CUSTOM-" };
 
     const WEB_FORMATS = {
         w800x880: { w: 800, h: 880, label: "Shopline 800×880", prefix: "SL-" },
@@ -78,6 +82,30 @@
     const socialOutputFormat = document.getElementById("socialOutputFormat");
     const socialPreviews = document.getElementById("socialPreviews");
 
+    // FB 4:3
+    const fb43Canvas = document.getElementById("fb43Canvas");
+    const toggleFB43 = document.getElementById("toggleFB43");
+    const cardFB43 = document.getElementById("cardFB43");
+    const btnDownloadFB43 = document.getElementById("btnDownloadFB43");
+    const warnFB43 = document.getElementById("warnFB43");
+    const warnFB43Size = document.getElementById("warnFB43Size");
+
+    // Custom format
+    const toggleCustom = document.getElementById("toggleCustom");
+    const cardCustom = document.getElementById("cardCustom");
+    const customCanvas = document.getElementById("customCanvas");
+    const customCanvasWrap = document.getElementById("customCanvasWrap");
+    const customSizeLabel = document.getElementById("customSizeLabel");
+    const customBadge = document.getElementById("customBadge");
+    const btnDownloadCustom = document.getElementById("btnDownloadCustom");
+    const warnCustom = document.getElementById("warnCustom");
+    const warnCustomSize = document.getElementById("warnCustomSize");
+    const customSizeSection = document.getElementById("customSizeSection");
+    const customW = document.getElementById("customW");
+    const customH = document.getElementById("customH");
+    const btnApplyCustom = document.getElementById("btnApplyCustom");
+    const customToggleSize = document.getElementById("customToggleSize");
+
     // Web/Amazon
     const webToggles = document.getElementById("webToggles");
     const webOutputFormat = document.getElementById("webOutputFormat");
@@ -116,6 +144,8 @@
     const igCtx = igCanvas.getContext("2d");
     const igStoryCtx = igStoryCanvas.getContext("2d");
     const fbCtx = fbCanvas.getContext("2d");
+    const fb43Ctx = fb43Canvas.getContext("2d");
+    const customCtx = customCanvas.getContext("2d");
     const webCtx = webCanvas.getContext("2d");
 
     // Social format map
@@ -123,6 +153,8 @@
         ig: { canvas: igCanvas, ctx: igCtx, card: cardIG, toggle: toggleIG },
         igstory: { canvas: igStoryCanvas, ctx: igStoryCtx, card: cardIGStory, toggle: toggleIGStory },
         fb: { canvas: fbCanvas, ctx: fbCtx, card: cardFB, toggle: toggleFB },
+        fb43: { canvas: fb43Canvas, ctx: fb43Ctx, card: cardFB43, toggle: toggleFB43 },
+        custom: { canvas: customCanvas, ctx: customCtx, card: cardCustom, toggle: toggleCustom },
     };
 
     // ── State ──
@@ -270,6 +302,8 @@
         igCanvas.width = SOCIAL_FORMATS.ig.w; igCanvas.height = SOCIAL_FORMATS.ig.h;
         igStoryCanvas.width = SOCIAL_FORMATS.igstory.w; igStoryCanvas.height = SOCIAL_FORMATS.igstory.h;
         fbCanvas.width = SOCIAL_FORMATS.fb.w; fbCanvas.height = SOCIAL_FORMATS.fb.h;
+        fb43Canvas.width = SOCIAL_FORMATS.fb43.w; fb43Canvas.height = SOCIAL_FORMATS.fb43.h;
+        customCanvas.width = CUSTOM_FORMAT.w; customCanvas.height = CUSTOM_FORMAT.h;
 
         updateWebCanvas();
         updateVisibility();
@@ -399,6 +433,7 @@
             ig: { el: warnIG, sizeEl: warnIGSize },
             igstory: { el: warnIGStory, sizeEl: warnIGStorySize },
             fb: { el: warnFB, sizeEl: warnFBSize },
+            fb43: { el: warnFB43, sizeEl: warnFB43Size },
         };
         for (const key of Object.keys(WARN_MAP)) {
             const f = SOCIAL_FORMATS[key];
@@ -410,6 +445,18 @@
             } else {
                 w.el.style.display = "none";
             }
+        }
+        // Custom warning
+        if (toggleCustom.checked) {
+            const actualC = getActualOutputSize(CUSTOM_FORMAT.w, CUSTOM_FORMAT.h);
+            if (actualC.insufficient) {
+                warnCustom.style.display = "block";
+                warnCustomSize.textContent = actualC.w + " × " + actualC.h;
+            } else {
+                warnCustom.style.display = "none";
+            }
+        } else {
+            warnCustom.style.display = "none";
         }
         const webKey = selectedWebFormatKey();
         if (webKey) {
@@ -433,7 +480,8 @@
         if (currentMode === "social") {
             for (const key of Object.keys(SOCIAL_MAP)) {
                 if (SOCIAL_MAP[key].toggle.checked) {
-                    renderPreview(SOCIAL_MAP[key].ctx, SOCIAL_FORMATS[key].w, SOCIAL_FORMATS[key].h);
+                    const fmt = key === "custom" ? CUSTOM_FORMAT : SOCIAL_FORMATS[key];
+                    renderPreview(SOCIAL_MAP[key].ctx, fmt.w, fmt.h);
                 }
             }
         } else {
@@ -599,7 +647,7 @@
                 const out = socialOutputInfo();
                 for (const key of Object.keys(SOCIAL_MAP)) {
                     if (SOCIAL_MAP[key].toggle.checked) {
-                        const f = SOCIAL_FORMATS[key];
+                        const f = key === "custom" ? CUSTOM_FORMAT : SOCIAL_FORMATS[key];
                         await new Promise(r => setTimeout(r, delay));
                         await downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext, entry.img, entry.zoom, entry.panX, entry.panY);
                         delay = 300;
@@ -687,6 +735,34 @@
         wmScaleVal = parseInt(e.target.value) / 100;
         wmScaleValue.textContent = e.target.value + "%";
         render();
+    });
+
+    // Custom format toggle
+    toggleCustom.addEventListener("change", () => {
+        customSizeSection.style.display = toggleCustom.checked ? "flex" : "none";
+        cardCustom.style.display = toggleCustom.checked ? "block" : "none";
+        render();
+    });
+
+    btnApplyCustom.addEventListener("click", () => {
+        const w = parseInt(customW.value) || 1000;
+        const h = parseInt(customH.value) || 1000;
+        CUSTOM_FORMAT.w = Math.max(50, Math.min(10000, w));
+        CUSTOM_FORMAT.h = Math.max(50, Math.min(10000, h));
+        customCanvas.width = CUSTOM_FORMAT.w;
+        customCanvas.height = CUSTOM_FORMAT.h;
+        customCanvasWrap.style.aspectRatio = CUSTOM_FORMAT.w + " / " + CUSTOM_FORMAT.h;
+        customSizeLabel.textContent = CUSTOM_FORMAT.w + " × " + CUSTOM_FORMAT.h;
+        customToggleSize.textContent = CUSTOM_FORMAT.w + "×" + CUSTOM_FORMAT.h;
+        render();
+    });
+
+    // Format toggles re-render
+    [toggleIG, toggleIGStory, toggleFB, toggleFB43].forEach(t => {
+        t.addEventListener("change", () => {
+            updateVisibility();
+            render();
+        });
     });
 
     tabSocial.addEventListener("click", () => {
@@ -798,6 +874,15 @@
         const f = SOCIAL_FORMATS.fb;
         downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext);
     });
+    btnDownloadFB43.addEventListener("click", () => {
+        const out = socialOutputInfo();
+        const f = SOCIAL_FORMATS.fb43;
+        downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext);
+    });
+    btnDownloadCustom.addEventListener("click", () => {
+        const out = socialOutputInfo();
+        downloadFormat(CUSTOM_FORMAT.w, CUSTOM_FORMAT.h, CUSTOM_FORMAT.prefix, out.mime, out.ext);
+    });
 
     btnDownloadAll.addEventListener("click", () => {
         saveCurrentState();
@@ -806,7 +891,7 @@
             let delay = 0;
             for (const key of Object.keys(SOCIAL_MAP)) {
                 if (SOCIAL_MAP[key].toggle.checked) {
-                    const f = SOCIAL_FORMATS[key];
+                    const f = key === "custom" ? CUSTOM_FORMAT : SOCIAL_FORMATS[key];
                     setTimeout(() => downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext), delay);
                     delay += 300;
                 }
