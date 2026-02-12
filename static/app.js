@@ -135,6 +135,7 @@
     const batchDownloadWrap = document.getElementById("batchDownloadWrap");
     const btnBatchDownload = document.getElementById("btnBatchDownload");
     const batchHint = document.getElementById("batchHint");
+    const chkSyncZoom = document.getElementById("chkSyncZoom");
 
     // Mode tabs
     const tabSocial = document.getElementById("tabSocial");
@@ -868,18 +869,25 @@
     });
 
     zoomSlider.addEventListener("input", (e) => {
-        zoom = parseInt(e.target.value) / 100;
-        zoomValue.textContent = e.target.value + "%";
+        const val = parseInt(e.target.value);
+        zoom = val / 100;
+        zoomValue.textContent = val + "%";
+        if (chkSyncZoom.checked) {
+            imageQueue.forEach(item => item.zoom = zoom);
+        }
         render();
     });
 
     sourceViewport.addEventListener("wheel", (e) => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -5 : 5;
-        const newVal = clamp(parseInt(zoomSlider.value) + delta, 100, 300);
+        const newVal = clamp(parseInt(zoomSlider.value) + delta, 10, 300);
         zoomSlider.value = newVal;
         zoom = newVal / 100;
         zoomValue.textContent = newVal + "%";
+        if (chkSyncZoom.checked) {
+            imageQueue.forEach(item => item.zoom = zoom);
+        }
         render();
     }, { passive: false });
 
@@ -919,6 +927,9 @@
         zoom = 1; panX = 0; panY = 0;
         zoomSlider.value = 100;
         zoomValue.textContent = "100%";
+        if (chkSyncZoom.checked) {
+            imageQueue.forEach(item => { item.zoom = 1; });
+        }
         render();
     });
 

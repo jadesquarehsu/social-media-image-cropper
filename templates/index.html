@@ -13,18 +13,7 @@
 </head>
 
 <body>
-    <!-- Password Gate -->
-    <div class="password-overlay" id="passwordOverlay">
-        <div class="password-box">
-            <div class="password-box__icon">🔒</div>
-            <h2 class="password-box__title">請輸入密碼</h2>
-            <form id="passwordForm" autocomplete="off">
-                <input type="password" class="password-box__input" id="passwordInput" placeholder="密碼" autofocus>
-                <p class="password-box__error" id="passwordError" style="display:none;">密碼錯誤，請重試</p>
-                <button type="submit" class="btn btn--accent password-box__btn">進入</button>
-            </form>
-        </div>
-    </div>
+
 
     <div class="app" id="mainApp" style="display:none;">
         <!-- Header -->
@@ -188,21 +177,7 @@
                 </label>
             </div>
 
-            <!-- Controls -->
-            <div class="controls">
-                <div class="controls__group">
-                    <label class="controls__label" for="zoomSlider">
-                        🔍 縮放
-                        <span class="controls__value" id="zoomValue">100%</span>
-                    </label>
-                    <input type="range" id="zoomSlider" class="controls__slider" min="10" max="300" value="100"
-                        step="1">
-                </div>
-                <div class="controls__actions">
-                    <button class="btn btn--secondary" id="btnReset">↺ 重置</button>
-                    <button class="btn btn--secondary" id="btnChangeImage">🔄 換圖</button>
-                </div>
-            </div>
+
 
             <!-- Watermark -->
             <div class="watermark-section">
@@ -242,6 +217,28 @@
                 <p class="source-container__hint">↕↔ 拖曳圖片調整焦點位置</p>
                 <div class="source-viewport" id="sourceViewport">
                     <canvas id="sourceCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Controls (Moved here) -->
+            <div class="controls">
+                <div class="controls__group">
+                    <label class="controls__label" for="zoomSlider">
+                        🔍 縮放
+                        <span class="controls__value" id="zoomValue">100%</span>
+                    </label>
+                    <input type="range" id="zoomSlider" class="controls__slider" min="10" max="300" value="100"
+                        step="1">
+                </div>
+                <!-- Sync Zoom Checkbox -->
+                <div class="controls__group controls__group--checkbox">
+                    <label class="checkbox-label" title="勾選後，縮放操作會同時套用到所有已上傳的圖片">
+                        <input type="checkbox" id="chkSyncZoom"> 同步縮放 (批次)
+                    </label>
+                </div>
+                <div class="controls__actions">
+                    <button class="btn btn--secondary" id="btnReset">↺ 重置</button>
+                    <button class="btn btn--secondary" id="btnChangeImage">🔄 換圖</button>
                 </div>
             </div>
 
@@ -342,48 +339,7 @@
         </footer>
     </div>
 
-    <script>
-        // Password gate
-        (function () {
-            const overlay = document.getElementById("passwordOverlay");
-            const mainApp = document.getElementById("mainApp");
-            const form = document.getElementById("passwordForm");
-            const input = document.getElementById("passwordInput");
-            const error = document.getElementById("passwordError");
 
-            fetch("/api/verify", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ password: "" })
-            }).then(r => r.json()).then(d => {
-                if (d.ok) {
-                    overlay.style.display = "none";
-                    mainApp.style.display = "block";
-                }
-            }).catch(() => { });
-
-            form.addEventListener("submit", function (e) {
-                e.preventDefault();
-                error.style.display = "none";
-                fetch("/api/verify", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ password: input.value })
-                }).then(r => r.json()).then(d => {
-                    if (d.ok) {
-                        overlay.style.display = "none";
-                        mainApp.style.display = "block";
-                    } else {
-                        error.style.display = "block";
-                        input.value = "";
-                        input.focus();
-                    }
-                }).catch(() => {
-                    error.style.display = "block";
-                });
-            });
-        })();
-    </script>
     <script src="{{ url_for('static', filename='app.js') }}?v=20240212"></script>
 </body>
 
