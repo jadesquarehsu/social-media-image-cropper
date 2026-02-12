@@ -628,6 +628,7 @@
     }
 
     function drawShoplineGuides(ctx, cw, ch) {
+        // Red guide (Standard)
         const gw = 640;
         const gh = 745;
         const gx = (cw - gw) / 2;
@@ -641,14 +642,28 @@
         ctx.fillStyle = "#FF0000";
         ctx.font = "bold 14px Inter, sans-serif";
         ctx.textAlign = "center";
-
-        // Top label "640px"
+        // Top label
         ctx.fillText("640px", cw / 2, gy - 8);
-
-        // Left label "745px"
+        // Left label
         ctx.textAlign = "right";
         ctx.fillText("745px", gx - 8, ch / 2 + 5);
+        ctx.restore();
 
+        // Green guide (Accessories)
+        const gh2 = 700; // Width is same 640
+        const gy2 = (ch - gh2) / 2;
+
+        ctx.save();
+        ctx.strokeStyle = "#00FF00";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]); // Dashed to distinguish sharing vertical lines
+        ctx.strokeRect(gx, gy2, gw, gh2);
+
+        ctx.fillStyle = "#00FF00";
+        ctx.font = "bold 14px Inter, sans-serif";
+        ctx.textAlign = "left";
+        // Right label
+        ctx.fillText("700px (配件)", gx + gw + 8, ch / 2 + 5);
         ctx.restore();
     }
 
