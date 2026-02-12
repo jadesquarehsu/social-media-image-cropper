@@ -20,7 +20,7 @@
     let CUSTOM_FORMAT = { w: 1000, h: 1000, label: "自訂", color: "rgba(168, 85, 247, 0.8)", prefix: "CUSTOM-" };
 
     const WEB_FORMATS = {
-        w800x880: { w: 800, h: 880, label: "Shopline 800×880", prefix: "SL-" },
+        w800x880: { w: 800, h: 880, label: "Shopline 800×880", prefix: "SL-", mode: "contain", guides: true },
         w2560x2560: { w: 2560, h: 2560, label: "2560×2560", prefix: "WEB-2560x2560-" },
         w2560x1920: { w: 2560, h: 1920, label: "2560×1920", prefix: "WEB-2560x1920-" },
         w2560x1440: { w: 2560, h: 1440, label: "2560×1440", prefix: "WEB-2560x1440-" },
@@ -195,6 +195,7 @@
             if (!selected) return [];
             const f = WEB_FORMATS[selected.value];
             const isShopline = selected.value === "w800x880";
+            // Return copy to avoid mutating original
             return f ? [{ ...f, color: isShopline ? SHOPLINE_GUIDE_COLOR : WEB_GUIDE_COLOR }] : [];
         }
     }
@@ -211,9 +212,23 @@
 
         let maxPanX = Infinity, maxPanY = Infinity;
         for (const f of formats) {
-            const baseScale = Math.max(f.w / img.width, f.h / img.height);
+            const mode = f.mode || "cover";
+            let baseScale;
+            if (mode === "contain") {
+                // For contain mode, typically we don't pan, or pan within the contained area?
+                // Actually if it's contained, the whole image is visible. Zoom > 1 allows panning.
+                baseScale = Math.min(f.w / img.width, f.h / img.height);
+            } else {
+                baseScale = Math.max(f.w / img.width, f.h / img.height);
+            }
+
             const cropW = f.w / (baseScale * zoom);
             const cropH = f.h / (baseScale * zoom);
+
+            // Allow panning if zoomed in
+            // If cropW > img.width (zoomed out or contained with extra space), clamp to 0?
+            // Existing logic: maxPan = (img - crop) / 2. If img < crop, maxPan is negative -> clamp triggers? 
+            // We use Math.max(0, ...) so if img < crop, pan range is 0. This is correct for contain mode (centered).
             const mpx = Math.max(0, (img.width - cropW) / 2);
             const mpy = Math.max(0, (img.height - cropH) / 2);
             maxPanX = Math.min(maxPanX, mpx);
@@ -481,14 +496,14 @@
             for (const key of Object.keys(SOCIAL_MAP)) {
                 if (SOCIAL_MAP[key].toggle.checked) {
                     const fmt = key === "custom" ? CUSTOM_FORMAT : SOCIAL_FORMATS[key];
-                    renderPreview(SOCIAL_MAP[key].ctx, fmt.w, fmt.h);
+                    renderPreview(SOCIAL_MAP[key].ctx, fmt);
                 }
             }
         } else {
             const key = selectedWebFormatKey();
             if (key) {
                 const f = WEB_FORMATS[key];
-                renderPreview(webCtx, f.w, f.h);
+                renderPreview(webCtx, f);
             }
         }
         updateWarnings();
@@ -516,7 +531,14 @@
     }
 
     function drawCropGuide(ctx, cw, ch, format, sourceScale) {
-        const baseScale = Math.max(format.w / img.width, format.h / img.height);
+        const mode = format.mode || "cover";
+        let baseScale;
+        if (mode === "contain") {
+            baseScale = Math.min(format.w / img.width, format.h / img.height);
+        } else {
+            baseScale = Math.max(format.w / img.width, format.h / img.height);
+        }
+
         const gw = format.w * sourceScale / baseScale;
         const gh = format.h * sourceScale / baseScale;
         const gx = (cw - gw) / 2;
@@ -535,12 +557,28 @@
         ctx.restore();
     }
 
-    function renderPreview(ctx, outW, outH) {
+    function renderPreview(ctx, format) {
+        const outW = format.w;
+        const outH = format.h;
+        const mode = format.mode || "cover";
+
         ctx.clearRect(0, 0, outW, outH);
-        ctx.fillStyle = "#000";
+
+        // Background color
+        if (mode === "contain") {
+            ctx.fillStyle = "#ffffff"; // White background for Shopline
+        } else {
+            ctx.fillStyle = "#000000"; // Black background for others (though usually covered)
+        }
         ctx.fillRect(0, 0, outW, outH);
 
-        const baseScale = Math.max(outW / img.width, outH / img.height);
+        let baseScale;
+        if (mode === "contain") {
+            baseScale = Math.min(outW / img.width, outH / img.height);
+        } else {
+            baseScale = Math.max(outW / img.width, outH / img.height);
+        }
+
         const scaledW = img.width * baseScale * zoom;
         const scaledH = img.height * baseScale * zoom;
         const panScale = baseScale * zoom;
@@ -549,10 +587,43 @@
 
         ctx.drawImage(img, dx, dy, scaledW, scaledH);
 
+        // Draw guides if enabled (e.g., Shopline 640x745)
+        if (format.guides) {
+            drawShoplineGuides(ctx, outW, outH);
+        }
+
         // Draw watermark on preview
         if (watermarkImg) {
             drawWatermark(ctx, outW, outH);
         }
+        if (watermarkImg) {
+            drawWatermark(ctx, outW, outH);
+        }
+    }
+
+    function drawShoplineGuides(ctx, cw, ch) {
+        const gw = 640;
+        const gh = 745;
+        const gx = (cw - gw) / 2;
+        const gy = (ch - gh) / 2;
+
+        ctx.save();
+        ctx.strokeStyle = "#FF0000";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(gx, gy, gw, gh);
+
+        ctx.fillStyle = "#FF0000";
+        ctx.font = "bold 14px Inter, sans-serif";
+        ctx.textAlign = "center";
+
+        // Top label "640px"
+        ctx.fillText("640px", cw / 2, gy - 8);
+
+        // Left label "745px"
+        ctx.textAlign = "right";
+        ctx.fillText("745px", gx - 8, ch / 2 + 5);
+
+        ctx.restore();
     }
 
     /** Draw watermark on a canvas */
@@ -579,7 +650,7 @@
     }
 
     // ── Download (resolution-aware) ──
-    function downloadFormat(outW, outH, prefix, overrideMime, overrideExt, targetImg, targetZoom, targetPanX, targetPanY) {
+    function downloadFormat(outW, outH, prefix, overrideMime, overrideExt, targetImg, targetZoom, targetPanX, targetPanY, mode = "cover") {
         const mime = overrideMime || fileMime;
         const ext = overrideExt || fileExt;
         const i = targetImg || img;
@@ -587,40 +658,45 @@
         const px = targetPanX != null ? targetPanX : panX;
         const py = targetPanY != null ? targetPanY : panY;
 
-        const baseScale = Math.max(outW / i.width, outH / i.height);
-        const effectiveScale = baseScale * z;
-
-        let actualW, actualH;
-        if (effectiveScale > 1) {
-            actualW = Math.round(outW / effectiveScale);
-            actualH = Math.round(outH / effectiveScale);
+        let baseScale;
+        if (mode === "contain") {
+            baseScale = Math.min(outW / i.width, outH / i.height);
         } else {
-            actualW = outW;
-            actualH = outH;
+            baseScale = Math.max(outW / i.width, outH / i.height);
         }
 
-        const tmp = document.createElement("canvas");
-        tmp.width = actualW;
-        tmp.height = actualH;
-        const tmpCtx = tmp.getContext("2d");
+        const effectiveScale = baseScale * z;
 
-        tmpCtx.fillStyle = "#000";
-        tmpCtx.fillRect(0, 0, actualW, actualH);
-        const bs = Math.max(actualW / i.width, actualH / i.height);
-        const sw = i.width * bs * z;
-        const sh = i.height * bs * z;
-        const ps = bs * z;
-        const dx = (actualW - sw) / 2 + px * ps;
-        const dy = (actualH - sh) / 2 + py * ps;
-        tmpCtx.drawImage(i, dx, dy, sw, sh);
+        const canvas = document.createElement("canvas");
+        canvas.width = outW;
+        canvas.height = outH;
+        const ctx = canvas.getContext("2d");
 
-        // Apply watermark to download
+        // Background
+        if (mode === "contain") {
+            ctx.fillStyle = "#ffffff";
+        } else {
+            ctx.fillStyle = "#000000";
+        }
+        ctx.fillRect(0, 0, outW, outH);
+
+        const scaledW = i.width * effectiveScale;
+        const scaledH = i.height * effectiveScale;
+        const dx = (outW - scaledW) / 2 + px * effectiveScale;
+        const dy = (outH - scaledH) / 2 + py * effectiveScale;
+
+        ctx.drawImage(i, dx, dy, scaledW, scaledH);
+
         if (watermarkImg) {
-            drawWatermark(tmpCtx, actualW, actualH);
+            // Re-calc watermark size relative to output
+            // ... use drawWatermark logic but adapting to this canvas ctx ??
+            // Actually drawWatermark uses global vars wmPos, wmScaleVal etc.
+            // We can just call drawWatermark(ctx, outW, outH) provided it doesn't rely on being bound to specific canvas
+            drawWatermark(ctx, outW, outH);
         }
 
         return new Promise(resolve => {
-            tmp.toBlob((blob) => {
+            canvas.toBlob((blob) => {
                 if (!blob) { resolve(); return; }
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
@@ -649,7 +725,9 @@
                     if (SOCIAL_MAP[key].toggle.checked) {
                         const f = key === "custom" ? CUSTOM_FORMAT : SOCIAL_FORMATS[key];
                         await new Promise(r => setTimeout(r, delay));
-                        await downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext, entry.img, entry.zoom, entry.panX, entry.panY);
+                        // Social formats use mode from definition (custom is default cover)
+                        const mode = f.mode || "cover";
+                        await downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext, entry.img, entry.zoom, entry.panX, entry.panY, mode);
                         delay = 300;
                     }
                 }
@@ -658,8 +736,9 @@
                 if (webKey) {
                     const out = webOutputInfo();
                     const f = WEB_FORMATS[webKey];
+                    const mode = f.mode || "cover";
                     await new Promise(r => setTimeout(r, delay));
-                    await downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext, entry.img, entry.zoom, entry.panX, entry.panY);
+                    await downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext, entry.img, entry.zoom, entry.panX, entry.panY, mode);
                     delay = 300;
                 }
             }
@@ -892,25 +971,30 @@
             for (const key of Object.keys(SOCIAL_MAP)) {
                 if (SOCIAL_MAP[key].toggle.checked) {
                     const f = key === "custom" ? CUSTOM_FORMAT : SOCIAL_FORMATS[key];
-                    setTimeout(() => downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext), delay);
+                    const mode = f.mode || "cover";
+                    setTimeout(() => downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext, null, null, null, null, mode), delay);
                     delay += 300;
                 }
             }
         } else {
             const webKey = selectedWebFormatKey();
-            if (!webKey) return;
-            const out = webOutputInfo();
-            const f = WEB_FORMATS[webKey];
-            downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext);
+            if (webKey) {
+                const out = webOutputInfo();
+                const f = WEB_FORMATS[webKey];
+                const mode = f.mode || "cover";
+                downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext, null, null, null, null, mode);
+            }
         }
     });
 
     btnDownloadWeb.addEventListener("click", () => {
-        const key = selectedWebFormatKey();
-        if (!key) return;
         const out = webOutputInfo();
-        const f = WEB_FORMATS[key];
-        downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext);
+        const key = selectedWebFormatKey();
+        if (key) {
+            const f = WEB_FORMATS[key];
+            const mode = f.mode || "cover";
+            downloadFormat(f.w, f.h, f.prefix, out.mime, out.ext, null, null, null, null, mode);
+        }
     });
 
     btnBatchDownload.addEventListener("click", () => {
