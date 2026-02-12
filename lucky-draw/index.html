@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活動抽獎遊戲 | Lucky Draw</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Main Menu -->
+        <div id="mainMenu" class="screen active">
+            <div class="menu-content">
+                <h1>🎉 節慶抽獎活動</h1>
+                <p>請選擇抽獎模式</p>
+                <div class="menu-buttons">
+                    <button class="btn btn-red" onclick="app.switchMode('red')">
+                        <span class="icon">🏮</span>
+                        <span class="text">新春抽抽樂<br><small>Red Grid Lottery</small></span>
+                    </button>
+                    <button class="btn btn-green" onclick="app.switchMode('green')">
+                        <span class="icon">🎄</span>
+                        <span class="text">聖誕轉盤樂<br><small>Green Roulette</small></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Red Mode (Grid) -->
+        <div id="redMode" class="screen red-theme hidden">
+            <button class="btn-back" onclick="app.goHome()">🏠 返回首頁</button>
+            <div class="game-container">
+                <div class="header">
+                    <h2>🏮 新春抽抽樂 🏮</h2>
+                </div>
+
+                <!-- 4x4 Grid -->
+                <div class="lottery-grid" id="lotteryGrid">
+                    <!-- JS will populate this -->
+                </div>
+
+                <div class="controls">
+                    <button class="btn-start btn-pulse" id="btnRedStart">開始抽獎</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Green Mode (Wheel) -->
+        <div id="greenMode" class="screen green-theme hidden">
+            <button class="btn-back" onclick="app.goHome()">🏠 返回首頁</button>
+            <div class="game-container">
+                <div class="header">
+                    <h2>🎄 聖誕轉盤樂 🎄</h2>
+                </div>
+
+                <div class="wheel-group">
+                    <div class="wheel-container">
+                        <canvas id="wheelCanvas" width="500" height="500"></canvas>
+                    </div>
+                    <div class="wheel-pointer">▼</div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn-start" id="btnGreenStart">GO! 開始旋轉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="resultModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close" onclick="app.closeModal()">&times;</span>
+            <h3 id="resultTitle">恭喜中獎！</h3>
+            <div id="resultPrize" class="prize-display">PRIZE NAME</div>
+            <button class="btn-confirm" onclick="app.closeModal()">確定</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
