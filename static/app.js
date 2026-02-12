@@ -136,6 +136,7 @@
     const btnBatchDownload = document.getElementById("btnBatchDownload");
     const batchHint = document.getElementById("batchHint");
     const chkSyncZoom = document.getElementById("chkSyncZoom");
+    const chkAutoBg = document.getElementById("chkAutoBg");
 
     // Mode tabs
     const tabSocial = document.getElementById("tabSocial");
@@ -178,12 +179,32 @@
     let wmOpacityVal = 0.5;
     let wmScaleVal = 0.20;
 
+    // Background color state
+    let detectedBgColor = "#ffffff";
+
+
+
     // ── Helpers ──
     function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
 
     function mimeFromExt(ext) {
         const map = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
         return map[ext.toLowerCase()] || "image/png";
+    }
+
+    function detectBgColor(img) {
+        try {
+            const c = document.createElement("canvas");
+            c.width = 50; c.height = 50;
+            const cx = c.getContext("2d");
+            cx.drawImage(img, 0, 0, 50, 50);
+            const p = cx.getImageData(0, 0, 1, 1).data;
+            // If transparent, default to white
+            if (p[3] < 250) return "#ffffff";
+            return `rgb(${p[0]}, ${p[1]}, ${p[2]})`;
+        } catch (e) {
+            return "#ffffff";
+        }
     }
 
     function activeFormats() {
@@ -301,7 +322,10 @@
         fileMime = mimeFromExt(fileExt);
         zoom = entry.zoom;
         panX = entry.panX;
+        zoom = entry.zoom;
+        panX = entry.panX;
         panY = entry.panY;
+        detectedBgColor = detectBgColor(img);
 
         zoomSlider.value = Math.round(zoom * 100);
         zoomValue.textContent = Math.round(zoom * 100) + "%";
@@ -566,8 +590,9 @@
         ctx.clearRect(0, 0, outW, outH);
 
         // Background color
+        // Background color
         if (mode === "contain") {
-            ctx.fillStyle = "#ffffff"; // White background for Shopline
+            ctx.fillStyle = (chkAutoBg && chkAutoBg.checked) ? detectedBgColor : "#ffffff";
         } else {
             ctx.fillStyle = "#000000"; // Black background for others (though usually covered)
         }
@@ -675,7 +700,7 @@
 
         // Background
         if (mode === "contain") {
-            ctx.fillStyle = "#ffffff";
+            ctx.fillStyle = (chkAutoBg && chkAutoBg.checked) ? detectedBgColor : "#ffffff";
         } else {
             ctx.fillStyle = "#000000";
         }
@@ -1011,5 +1036,23 @@
     btnBatchDownload.addEventListener("click", () => {
         batchDownloadAll();
     });
+
+    btnRemoveWatermark.addEventListener("click", () => {
+        watermarkImg = null;
+        watermarkInput.value = "";
+        watermarkName.textContent = "尚未選擇";
+        watermarkControls.style.display = "none";
+        btnRemoveWatermark.style.display = "none";
+        watermarkPreview.style.display = "none";
+        watermarkPreview.innerHTML = "";
+        render();
+    });
+
+    // Auto bg toggle
+    if (chkAutoBg) {
+        chkAutoBg.addEventListener("change", () => {
+            render();
+        });
+    }
 
 })();
